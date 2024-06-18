@@ -1,0 +1,6 @@
+{
+  "extends": ["../villagekit/biome.json"],
+  "vcs": {
+    "root": "./"
+  }
+}

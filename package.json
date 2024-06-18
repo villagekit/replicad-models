@@ -1,0 +1,15 @@
+{
+  "name": "replicad",
+  "version": "0.0.0",
+  "private": true,
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "BlueOak-1.0.0",
+  "dependencies": {
+    "replicad": "^0.16.1",
+    "typescript": "^5.4.5"
+  }
+}
