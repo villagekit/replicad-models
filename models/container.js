@@ -10,10 +10,11 @@ const defaultParams = {
 /** @typedef { typeof import("replicad") } replicadLib */
 /** @type {function(replicadLib, typeof defaultParams): any} */
 function main(replicad, params) {
-  const { drawRoundedRectangle, draw } = replicad
+  const { draw } = replicad
   const { width, height, depth, wallThickness, outerFillet, bottomFillet } = params
 
-  const base = drawRoundedRectangle(
+  const base = drawRoundedRectangleWithStraightBack(
+    replicad,
     width - 2 * bottomFillet,
     height - 2 * bottomFillet,
     outerFillet,
@@ -37,7 +38,19 @@ function main(replicad, params) {
   }
 }
 
-function profileBox(replicad, inputProfile, base) {
+function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad, width, height, r) {
+  const { draw } = replicad
+
+  return draw()
+    .vLine(height - 2 * r)
+    .tangentArc(-r, r)
+    .hLine(-width + 2 * r)
+    .tangentArc(-r, -r)
+    .vLine(-height + 2 * r)
+    .close()
+}
+
+function profileBox(/** @type replicadLib */ replicad, inputProfile, base) {
   const { makeSolid, makeFace, assembleWire, EdgeFinder } = replicad
 
   const start = inputProfile.blueprint.firstPoint
