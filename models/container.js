@@ -71,7 +71,7 @@ function main(replicad, params) {
       .translate([
         kerfInMm - (1 / 2 + fastenerIndex) * gridSpacingInMm,
         wallThicknessInMm,
-        -kerfInMm + (1 / 2 + heightInGrids) * gridSpacingInMm,
+        boxHeightInMm + (1 / 2) * gridSpacingInMm,
       ])
     back = back.cut(fastenerCut)
   }
@@ -95,11 +95,11 @@ function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad,
   const { draw } = replicad
 
   return draw()
-    .vLine(height - 2 * r)
+    .vLine(height - r)
     .tangentArc(-r, r)
     .hLine(-width + 2 * r)
     .tangentArc(-r, -r)
-    .vLine(-height + 2 * r)
+    .vLine(-height + r)
     .close()
 }
 
