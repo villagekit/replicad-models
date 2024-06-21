@@ -1,7 +1,8 @@
 const defaultParams = {
   width: 80,
-  height: 40,
-  depth: 20,
+  depth: 40,
+  boxHeight: 20,
+  backHeight: 20,
   wallThickness: 1.6,
   outerFillet: 5,
   bottomFillet: 5,
@@ -11,46 +12,64 @@ const defaultParams = {
 /** @type {function(replicadLib, typeof defaultParams): any} */
 function main(replicad, params) {
   const { draw } = replicad
-  const { width, height, depth, wallThickness, outerFillet, bottomFillet } = params
+  const { width, depth, boxHeight, backHeight, wallThickness, outerFillet, bottomFillet } = params
 
   const base = drawRoundedRectangleWithStraightBack(
     replicad,
     width - 2 * bottomFillet,
-    height - 2 * bottomFillet,
+    depth - 2 * bottomFillet,
     outerFillet,
   )
-  const profile = draw()
+  const wallProfile = draw()
     .line(bottomFillet, bottomFillet)
     .customCorner(bottomFillet)
-    .vLine(depth - bottomFillet)
+    .vLine(boxHeight - bottomFillet)
     .hLine(-wallThickness)
-    .vLine(-depth + wallThickness / 2 + bottomFillet)
+    .vLine(-boxHeight + wallThickness / 2 + bottomFillet)
     .customCorner(bottomFillet - wallThickness)
     .lineTo([0, wallThickness])
     .done()
 
-  const shape = profileBox(replicad, profile, base).fillet(wallThickness / 3, (f) =>
-    f.either([(f) => f.inPlane('XY', depth), (f) => f.inPlane('XZ', bottomFillet)]),
+  const box = createProfileBox(replicad, wallProfile, base).translate(
+    -bottomFillet,
+    bottomFillet,
+    0,
   )
+
+  const back = drawRoundedRectangleWithStraightBack(replicad, width, backHeight, outerFillet)
+    .sketchOnPlane('XZ')
+    .extrude(wallThickness)
+    .translateY(wallThickness)
+    .translateZ(boxHeight)
+
+  const shape = box
+    .fuse(back)
+    .fillet(wallThickness / 3, (f) =>
+      f.either([
+        (f) => f.inPlane('XY', boxHeight),
+        (f) => f.inPlane('XZ'),
+        (f) => f.inPlane('XZ', -wallThickness),
+      ]),
+    )
 
   return {
     shape,
   }
 }
 
-function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad, width, height, r) {
+function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad, width, depth, r) {
   const { draw } = replicad
 
   return draw()
-    .vLine(height - 2 * r)
+    .vLine(depth - 2 * r)
     .tangentArc(-r, r)
     .hLine(-width + 2 * r)
     .tangentArc(-r, -r)
-    .vLine(-height + 2 * r)
+    .vLine(-depth + 2 * r)
     .close()
 }
 
-function profileBox(/** @type replicadLib */ replicad, inputProfile, base) {
+function createProfileBox(/** @type replicadLib */ replicad, inputProfile, base) {
   const { makeSolid, makeFace, assembleWire, EdgeFinder } = replicad
 
   const start = inputProfile.blueprint.firstPoint
