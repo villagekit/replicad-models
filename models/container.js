@@ -29,8 +29,8 @@ function main(replicad, params) {
     .lineTo([0, wallThickness])
     .done()
 
-  const shape = profileBox(replicad, profile, base).fillet(wallThickness / 3, (e) =>
-    e.inPlane('XY', depth),
+  const shape = profileBox(replicad, profile, base).fillet(wallThickness / 3, (f) =>
+    f.either([(f) => f.inPlane('XY', depth), (f) => f.inPlane('XZ', bottomFillet)]),
   )
 
   return {
