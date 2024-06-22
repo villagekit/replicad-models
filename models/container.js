@@ -65,7 +65,7 @@ function main(replicad, params) {
     .translateZ(boxHeightInMm)
 
   for (const fastenerIndex of range(widthInGrids)) {
-    const fastenerCut = drawCircle((1 / 2) * fastenerDiameterInMm)
+    const fastenerCut = drawHexihole(replicad, { radius: (1 / 2) * fastenerDiameterInMm })
       .sketchOnPlane('XZ')
       .extrude(wallThicknessInMm)
       .translate([
@@ -127,6 +127,36 @@ function createProfileBox(/** @type replicadLib */ replicad, inputProfile, base)
     makeFace(assembleWire(new EdgeFinder().inPlane('XY', end[1]).find(side))),
     baseSketch.face(),
   ])
+}
+
+function drawHexihole(/** @type replicadLib */ replicad, options) {
+  // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
+  // The common length of the sides equals the radius of the circumscribed circle or circumcircle,
+  //  which equals (2/sqrt(3)) times the apothem (radius of the inscribed circle).
+  const { radius: inscribedRadius } = options
+  const circumscribedRadius = inscribedRadius * (2 / Math.sqrt(3))
+  return drawHexagon(replicad, { radius: circumscribedRadius })
+}
+
+function drawHexagon(/** @type replicadLib */ replicad, options) {
+  const { draw } = replicad
+  const { radius, orientation = 'v-bottom' } = options
+
+  let startPoint
+  let startAngle
+  if (orientation === 'v-bottom') {
+    startPoint = [0, -radius]
+    startAngle = 30
+  } else if (orientation === 'flat-bottom') {
+    startPoint = [radius, 0]
+    startAngle = 120
+  }
+
+  let pen = draw().movePointerTo(startPoint)
+  for (const sideIndex of range(6)) {
+    pen = pen.polarLine(radius, sideIndex * 60 + startAngle)
+  }
+  return pen.close()
 }
 
 function range(end) {
