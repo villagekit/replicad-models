@@ -11,7 +11,3 @@
 - [container](./models/container.js)
 - [hook](./models/hook.js)
 - [hinge](./models/hinge.js)
-
-## License
-
-[BlueOak-1.0.0](https://blueoakcouncil.org/license/1.0.0)
