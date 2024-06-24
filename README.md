@@ -7,9 +7,10 @@
 
 ## Models
 
+- [bracket](./models/bracket.js)
+- [container](./models/container.js)
 - [hook](./models/hook.js)
 - [hinge](./models/hinge.js)
-- [container](./models/container.js)
 
 ## License
 
