@@ -15,7 +15,7 @@ const defaultParams = {
 /** @typedef { typeof import("replicad") } replicadLib */
 /** @type {function(replicadLib, typeof defaultParams): any} */
 function main(replicad, params) {
-  const { draw, drawCircle } = replicad
+  const { draw } = replicad
   const {
     hookWidth,
     hookHeight,
@@ -64,10 +64,43 @@ function main(replicad, params) {
 
   const mount = mountProfile.sketchOnPlane('YZ').extrude(hookThickness).fillet(hookFillet)
 
-  const fastenerHole = drawCircle(hookFastenerDiameter / 2)
+  const fastenerHole = drawHexihole(replicad, {
+    radius: hookFastenerDiameter / 2,
+    orientation: 'flat-bottom',
+  })
     .sketchOnPlane('YZ')
     .extrude(hookThickness)
     .translate(0, 0, (hookMountRadius * Math.sqrt(3)) / 2)
 
   return hook.fuse(mount).cut(fastenerHole)
+}
+
+function drawHexihole(/** @type replicadLib */ replicad, options) {
+  // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
+  // The common length of the sides equals the radius of the circumscribed circle or circumcircle,
+  //  which equals (2/sqrt(3)) times the apothem (radius of the inscribed circle).
+  const { radius: inscribedRadius, orientation } = options
+  const circumscribedRadius = inscribedRadius * (2 / Math.sqrt(3))
+  return drawHexagon(replicad, { radius: circumscribedRadius, orientation })
+}
+
+function drawHexagon(/** @type replicadLib */ replicad, options) {
+  const { draw } = replicad
+  const { radius, orientation = 'v-bottom' } = options
+
+  let startPoint
+  let startAngle
+  if (orientation === 'v-bottom') {
+    startPoint = [0, -radius]
+    startAngle = 30
+  } else if (orientation === 'flat-bottom') {
+    startPoint = [radius, 0]
+    startAngle = 120
+  }
+
+  let pen = draw().movePointerTo(startPoint)
+  for (let sideIndex = 0; sideIndex < 6; sideIndex++) {
+    pen = pen.polarLine(radius, sideIndex * 60 + startAngle)
+  }
+  return pen.close()
 }
