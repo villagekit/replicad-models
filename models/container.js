@@ -1,3 +1,5 @@
+/** @import * as Replicad from 'replicad' */
+
 const defaultParams = {
   gridSpacingInMm: 40,
   widthInGrids: 5,
@@ -10,10 +12,9 @@ const defaultParams = {
   kerfInMm: 1,
 }
 
-/** @typedef { typeof import("replicad") } replicadLib */
-/** @type {function(replicadLib, typeof defaultParams): any} */
-function main(replicad, params) {
-  const { draw, drawCircle } = replicad
+/** @param {typeof defaultParams} params */
+export default function main(params) {
+  const { draw } = replicad
   const {
     gridSpacingInMm,
     widthInGrids,
@@ -32,7 +33,6 @@ function main(replicad, params) {
   const backHeightInMm = gridSpacingInMm - kerfInMm
 
   const base = drawRoundedRectangleWithStraightBack(
-    replicad,
     widthInMm - 2 * bottomFilletInMm,
     depthInMm - 2 * bottomFilletInMm,
     outerFilletInMm,
@@ -47,25 +47,16 @@ function main(replicad, params) {
     .lineTo([0, wallThicknessInMm])
     .done()
 
-  const box = createProfileBox(replicad, wallProfile, base).translate(
-    -bottomFilletInMm,
-    bottomFilletInMm,
-    0,
-  )
+  const box = createProfileBox(wallProfile, base).translate(-bottomFilletInMm, bottomFilletInMm, 0)
 
-  let back = drawRoundedRectangleWithStraightBack(
-    replicad,
-    widthInMm,
-    backHeightInMm,
-    outerFilletInMm,
-  )
+  let back = drawRoundedRectangleWithStraightBack(widthInMm, backHeightInMm, outerFilletInMm)
     .sketchOnPlane('XZ')
     .extrude(wallThicknessInMm)
     .translateY(wallThicknessInMm)
     .translateZ(boxHeightInMm)
 
   for (const fastenerIndex of range(widthInGrids)) {
-    const fastenerCut = drawHexihole(replicad, { radius: (1 / 2) * fastenerDiameterInMm })
+    const fastenerCut = drawHexihole({ radius: (1 / 2) * fastenerDiameterInMm })
       .sketchOnPlane('XZ')
       .extrude(wallThicknessInMm)
       .translate([
@@ -91,19 +82,12 @@ function main(replicad, params) {
   }
 }
 
-function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad, width, height, r) {
-  const { draw } = replicad
-
-  return draw()
-    .vLine(height - r)
-    .tangentArc(-r, r)
-    .hLine(-width + 2 * r)
-    .tangentArc(-r, -r)
-    .vLine(-height + r)
-    .close()
-}
-
-function createProfileBox(/** @type replicadLib */ replicad, inputProfile, base) {
+/**
+ * @param {Replicad.Drawing} inputProfile
+ * @param {Replicad.Drawing} base
+ * @returns {Replicad.Solid}
+ */
+function createProfileBox(inputProfile, base) {
   const { makeSolid, makeFace, assembleWire, EdgeFinder } = replicad
 
   const start = inputProfile.blueprint.firstPoint
@@ -129,25 +113,55 @@ function createProfileBox(/** @type replicadLib */ replicad, inputProfile, base)
   ])
 }
 
-function drawHexihole(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {number} width
+ * @param {number} height
+ * @param {number} r
+ * @returns {import('replicad').Drawing}
+ */
+function drawRoundedRectangleWithStraightBack(width, height, r) {
+  const { draw } = replicad
+
+  return draw()
+    .vLine(height - r)
+    .tangentArc(-r, r)
+    .hLine(-width + 2 * r)
+    .tangentArc(-r, -r)
+    .vLine(-height + r)
+    .close()
+}
+
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} options.orientation
+ */
+function drawHexihole(options) {
   // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
   // The common length of the sides equals the radius of the circumscribed circle or circumcircle,
   //  which equals (2/sqrt(3)) times the apothem (radius of the inscribed circle).
-  const { radius: inscribedRadius } = options
+  const { radius: inscribedRadius, orientation } = options
   const circumscribedRadius = inscribedRadius * (2 / Math.sqrt(3))
-  return drawHexagon(replicad, { radius: circumscribedRadius })
+  return drawHexagon({ radius: circumscribedRadius, orientation })
 }
 
-function drawHexagon(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} options.orientation
+ */
+function drawHexagon(options) {
   const { draw } = replicad
   const { radius, orientation = 'v-bottom' } = options
 
+  /** @type {[number, number]} */
   let startPoint
+  /** @type {number} */
   let startAngle
   if (orientation === 'v-bottom') {
     startPoint = [0, -radius]
     startAngle = 30
-  } else if (orientation === 'flat-bottom') {
+  } else {
     startPoint = [radius, 0]
     startAngle = 120
   }
@@ -159,6 +173,9 @@ function drawHexagon(/** @type replicadLib */ replicad, options) {
   return pen.close()
 }
 
+/**
+ * @param {number} end
+ */
 function range(end) {
   return Array.from(Array(end).keys())
 }
