@@ -1,4 +1,4 @@
-const { draw, drawCircle, drawRectangle, makePlane } = replicad
+/** @import * as Replicad from 'replicad' */
 
 // Inspiration:
 // - https://www.instructables.com/Perfect-3d-Printed-Hinge/
@@ -10,9 +10,7 @@ const { draw, drawCircle, drawRectangle, makePlane } = replicad
 // - pin: the solid on which the hinge pivots
 // - shaft: the empty for the pin to move
 
-const ROT = 2 * Math.PI
-
-const defaultParams = {
+export const defaultParams = {
   evenSide: true,
   oddSide: true,
   numFasteners: 2,
@@ -30,10 +28,11 @@ const defaultParams = {
   fastenerFillet: 1,
 }
 
-/** @typedef { typeof import("replicad") } replicadLib */
-/** @type {function(replicadLib, typeof defaultParams): any} */
-function main(replicad, params) {
-  const { draw, drawCircle } = replicad
+/**
+ * @param {typeof defaultParams} params
+ */
+export default function main(params) {
+  const { draw, drawCircle, makePlane } = replicad
 
   const {
     evenSide,
@@ -86,6 +85,11 @@ function main(replicad, params) {
   // - plus a set of either:
   //   - knuckles and pins
   //   - or shafts
+
+  /**
+   * @param {object} options
+   * @param {'even' | 'odd'} options.whichSide
+   */
   function Side(options) {
     const { whichSide } = options
 
@@ -107,6 +111,7 @@ function main(replicad, params) {
         } else {
           const evenKnuckleClearance = Knuckle({ height: knuckleHeight })
             .translateY(knuckleStart)
+            // @ts-ignore
             .mirror(makePlane('XY', thickness))
 
           side = side.cut(evenKnuckleClearance)
@@ -115,6 +120,7 @@ function main(replicad, params) {
         if (whichSide === 'even') {
           const oddKnuckleClearance = Knuckle({ height: knuckleHeight })
             .translateY(knuckleStart)
+            // @ts-ignore
             .mirror(makePlane('XY', thickness))
 
           side = side.cut(oddKnuckleClearance)
@@ -138,6 +144,7 @@ function main(replicad, params) {
     }
 
     if (whichSide === 'odd') {
+      // @ts-ignore
       side = side.mirror('YZ')
     }
 
@@ -148,7 +155,7 @@ function main(replicad, params) {
     const hexHeight = 2 * fastenerConnectorRadius
     const hexRadius = hexHeight / 2
 
-    let profile = draw()
+    let pen = draw()
       .movePointerTo([thickness, 0])
       // horizontal line to hole position
       .hLineTo((1 / 2) * fastenerSpacing)
@@ -159,10 +166,10 @@ function main(replicad, params) {
 
     if (numFasteners > 1) {
       // vertical line to next hole
-      profile = profile.vLine((numFasteners - 1) * fastenerSpacing)
+      pen = pen.vLine((numFasteners - 1) * fastenerSpacing)
     }
 
-    profile = profile
+    const profile = pen
       // expand vertical line to hexagon
       .vLine((1 / 2) * hexRadius)
       // hexagon edge
@@ -172,13 +179,17 @@ function main(replicad, params) {
       .hLineTo(thickness)
       .close()
 
-    let leaf = profile.sketchOnPlane().extrude(thickness).fillet(leafFillet)
+    let leaf = /** @type {Replicad.Solid} */ (profile.sketchOnPlane().extrude(thickness)).fillet(
+      leafFillet,
+    )
 
     for (let fastenerIndex = 0; fastenerIndex < numFasteners; fastenerIndex++) {
       const fastenerX = (1 / 2) * fastenerSpacing
       const fastenerY = fastenerIndex * fastenerSpacing + fastenerConnectorRadius
       leaf = leaf
+        // @ts-ignore
         .cut(fastenerHoleCut().translate(fastenerX, fastenerY))
+        // @ts-ignore
         .cut(fastenerCapCut().translate(fastenerX, fastenerY))
         .fillet(fastenerFillet)
     }
@@ -187,18 +198,22 @@ function main(replicad, params) {
   }
 
   function fastenerHoleCut() {
-    return hexagon({ radius: fastenerHoleDiameter / 2 })
+    return drawHexihole({ radius: fastenerHoleDiameter / 2 })
       .sketchOnPlane('XY')
       .extrude(thickness)
   }
 
   function fastenerCapCut() {
-    return hexagon({ radius: fastenerCapDiameter / 2 })
+    return drawHexihole({ radius: fastenerCapDiameter / 2 })
       .sketchOnPlane('XY')
       .extrude(fastenerCapHeight)
       .translateZ(thickness - fastenerCapHeight)
   }
 
+  /**
+   * @param {object} options
+   * @param {number} options.height
+   */
   function Knuckle({ height }) {
     const profile = draw()
       .halfEllipseTo([0, 2 * thickness], thickness)
@@ -206,41 +221,75 @@ function main(replicad, params) {
       .vLineTo(0)
       .close()
 
-    const knuckle = profile.sketchOnPlane('XZ').extrude(-height).fillet(knuckleFillet)
+    const knuckle = /** @type {Replicad.Solid} */ (
+      profile.sketchOnPlane('XZ').extrude(-height)
+    ).fillet(knuckleFillet)
 
     return knuckle
   }
 
+  /**
+   * @param {object} options
+   * @param {number} options.radius
+   * @param {number} options.height
+   */
   function Pin({ radius, height }) {
-    const startCircle = drawCircle(radius).sketchOnPlane('XZ', 0)
-    const middleCircle = drawCircle((1 / 2) * radius).sketchOnPlane('XZ', (1 / 2) * height)
-    const endCircle = drawCircle(radius).sketchOnPlane('XZ', height)
+    const startCircle = /** @type {Replicad.Sketch} */ (drawCircle(radius).sketchOnPlane('XZ', 0))
+    const middleCircle = /** @type {Replicad.Sketch} */ (
+      drawCircle((1 / 2) * radius).sketchOnPlane('XZ', (1 / 2) * height)
+    )
+    const endCircle = /** @type {Replicad.Sketch} */ (
+      drawCircle(radius).sketchOnPlane('XZ', height)
+    )
 
-    return startCircle
-      .loftWith([middleCircle, endCircle], { ruled: false })
-      .mirror('XZ')
-      .translateZ(thickness)
+    return (
+      startCircle
+        .loftWith([middleCircle, endCircle], { ruled: false })
+        // @ts-ignore
+        .mirror('XZ')
+        .translateZ(thickness)
+    )
   }
 }
 
-function hexihole(options) {
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} [options.orientation]
+ */
+function drawHexihole(options) {
   // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
   // The common length of the sides equals the radius of the circumscribed circle or circumcircle,
   //  which equals (2/sqrt(3)) times the apothem (radius of the inscribed circle).
-  const { radius: inscribedRadius } = options
+  const { radius: inscribedRadius, orientation } = options
   const circumscribedRadius = inscribedRadius * (2 / Math.sqrt(3))
-  return hexagon({ radius: circumscribedRadius })
+  return drawHexagon({ radius: circumscribedRadius, orientation })
 }
 
-function hexagon(options) {
-  const { radius } = options
-  return draw()
-    .movePointerTo([radius * Math.sin((1 / 6) * ROT), radius * Math.cos((1 / 6) * ROT)])
-    .lineTo([radius * Math.sin((2 / 6) * ROT), radius * Math.cos((2 / 6) * ROT)])
-    .lineTo([radius * Math.sin((3 / 6) * ROT), radius * Math.cos((3 / 6) * ROT)])
-    .lineTo([radius * Math.sin((4 / 6) * ROT), radius * Math.cos((4 / 6) * ROT)])
-    .lineTo([radius * Math.sin((5 / 6) * ROT), radius * Math.cos((5 / 6) * ROT)])
-    .lineTo([radius * Math.sin((6 / 6) * ROT), radius * Math.cos((6 / 6) * ROT)])
-    .close()
-    .rotate(90)
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} [options.orientation]
+ */
+function drawHexagon(options) {
+  const { draw } = replicad
+  const { radius, orientation = 'v-bottom' } = options
+
+  /** @type {[number, number]} */
+  let startPoint
+  /** @type {number} */
+  let startAngle
+  if (orientation === 'v-bottom') {
+    startPoint = [0, -radius]
+    startAngle = 30
+  } else {
+    startPoint = [radius, 0]
+    startAngle = 120
+  }
+
+  let pen = draw().movePointerTo(startPoint)
+  for (let sideIndex = 0; sideIndex < 6; sideIndex++) {
+    pen = pen.polarLine(radius, sideIndex * 60 + startAngle)
+  }
+  return pen.close()
 }

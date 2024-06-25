@@ -12,7 +12,9 @@ export const defaultParams = {
   kerfInMm: 1,
 }
 
-/** @param {typeof defaultParams} params */
+/**
+ * @param {typeof defaultParams} params
+ */
 export default function main(params) {
   const { combineFinderFilters, EdgeFinder } = replicad
   const {
@@ -64,7 +66,7 @@ export default function main(params) {
       ]),
       radius: innerFilletInMm,
     },
-    {/** @type {Replicad.Solid} */ 
+    {
       // @ts-ignore
       filter: new EdgeFinder(),
       radius: (1 / 3) * wallThicknessInMm,

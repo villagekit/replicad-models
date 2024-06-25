@@ -1,6 +1,6 @@
 /** @import * as Replicad from 'replicad' */
 
-const defaultParams = {
+export const defaultParams = {
   gridSpacingInMm: 40,
   widthInGrids: 5,
   depthInGrids: 2,
@@ -12,7 +12,9 @@ const defaultParams = {
   kerfInMm: 1,
 }
 
-/** @param {typeof defaultParams} params */
+/**
+ * @param {typeof defaultParams} params
+ */
 export default function main(params) {
   const { draw } = replicad
   const {
@@ -49,21 +51,25 @@ export default function main(params) {
 
   const box = createProfileBox(wallProfile, base).translate(-bottomFilletInMm, bottomFilletInMm, 0)
 
-  let back = drawRoundedRectangleWithStraightBack(widthInMm, backHeightInMm, outerFilletInMm)
-    .sketchOnPlane('XZ')
-    .extrude(wallThicknessInMm)
-    .translateY(wallThicknessInMm)
-    .translateZ(boxHeightInMm)
-
-  for (const fastenerIndex of range(widthInGrids)) {
-    const fastenerCut = drawHexihole({ radius: (1 / 2) * fastenerDiameterInMm })
+  let back = /** @type {Replicad.Solid} */ (
+    drawRoundedRectangleWithStraightBack(widthInMm, backHeightInMm, outerFilletInMm)
       .sketchOnPlane('XZ')
       .extrude(wallThicknessInMm)
-      .translate([
-        kerfInMm - (1 / 2 + fastenerIndex) * gridSpacingInMm,
-        wallThicknessInMm,
-        boxHeightInMm + (1 / 2) * gridSpacingInMm,
-      ])
+      .translateY(wallThicknessInMm)
+      .translateZ(boxHeightInMm)
+  )
+
+  for (const fastenerIndex of range(widthInGrids)) {
+    const fastenerCut = /** @type {Replicad.Solid} */ (
+      drawHexihole({ radius: (1 / 2) * fastenerDiameterInMm })
+        .sketchOnPlane('XZ')
+        .extrude(wallThicknessInMm)
+        .translate([
+          kerfInMm - (1 / 2 + fastenerIndex) * gridSpacingInMm,
+          wallThicknessInMm,
+          boxHeightInMm + (1 / 2) * gridSpacingInMm,
+        ])
+    )
     back = back.cut(fastenerCut)
   }
 
@@ -95,11 +101,11 @@ function createProfileBox(inputProfile, base) {
 
   const end = profile.blueprint.lastPoint
 
-  const baseSketch = base.sketchOnPlane()
+  const baseSketch = /** @type {Replicad.Sketch} */ (base.sketchOnPlane())
 
   const side = baseSketch.clone().sweepSketch(
-    (plane) => {
-      return profile.sketchOnPlane(plane)
+    (/** @type {Replicad.Plane} */ plane) => {
+      return /** @type {Replicad.Sketch} */ (profile.sketchOnPlane(plane))
     },
     {
       withContact: true,
@@ -117,7 +123,7 @@ function createProfileBox(inputProfile, base) {
  * @param {number} width
  * @param {number} height
  * @param {number} r
- * @returns {import('replicad').Drawing}
+ * @returns {Replicad.Drawing}
  */
 function drawRoundedRectangleWithStraightBack(width, height, r) {
   const { draw } = replicad
@@ -134,7 +140,7 @@ function drawRoundedRectangleWithStraightBack(width, height, r) {
 /**
  * @param {object} options
  * @param {number} options.radius
- * @param {'v-bottom' | 'flat-bottom'} options.orientation
+ * @param {'v-bottom' | 'flat-bottom'} [options.orientation]
  */
 function drawHexihole(options) {
   // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
@@ -148,7 +154,7 @@ function drawHexihole(options) {
 /**
  * @param {object} options
  * @param {number} options.radius
- * @param {'v-bottom' | 'flat-bottom'} options.orientation
+ * @param {'v-bottom' | 'flat-bottom'} [options.orientation]
  */
 function drawHexagon(options) {
   const { draw } = replicad
