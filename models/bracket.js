@@ -1,4 +1,6 @@
-const defaultParams = {
+/** @import * as Replicad from 'replicad' */
+
+export const defaultParams = {
   gridSpacingInMm: 40,
   widthInGrids: 2,
   topLengthInGrids: 1,
@@ -10,9 +12,10 @@ const defaultParams = {
   kerfInMm: 1,
 }
 
-/** @typedef { typeof import("replicad") } replicadLib */
-/** @type {function(replicadLib, typeof defaultParams): any} */
-function main(replicad, params) {
+/**
+ * @param {typeof defaultParams} params
+ */
+export default function main(params) {
   const { combineFinderFilters, EdgeFinder } = replicad
   const {
     gridSpacingInMm,
@@ -34,20 +37,28 @@ function main(replicad, params) {
     kerfInMm,
   }
 
-  const bottom = drawSide(replicad, { ...sideOptions, lengthInGrids: bottomLengthInGrids })
-    .sketchOnPlane('XZ')
-    .extrude(wallThicknessInMm)
-    .rotate(90, [0, 0, 0], [0, 1, 0])
-    .translateY(wallThicknessInMm)
+  const bottom = /** @type {Replicad.Solid} */ (
+    drawSide({
+      ...sideOptions,
+      lengthInGrids: bottomLengthInGrids,
+    })
+      .sketchOnPlane('XZ')
+      .extrude(wallThicknessInMm)
+      .rotate(90, [0, 0, 0], [0, 1, 0])
+      .translateY(wallThicknessInMm)
+  )
 
-  const top = drawSide(replicad, { ...sideOptions, lengthInGrids: topLengthInGrids })
-    .sketchOnPlane('XZ')
-    .extrude(wallThicknessInMm)
-    .rotate(90, [0, 0, 0], [0, 1, 0])
-    .rotate(90, [0, 0, 0], [0, 0, 1])
+  const top = /** @type {Replicad.Solid} */ (
+    drawSide({ ...sideOptions, lengthInGrids: topLengthInGrids })
+      .sketchOnPlane('XZ')
+      .extrude(wallThicknessInMm)
+      .rotate(90, [0, 0, 0], [0, 1, 0])
+      .rotate(90, [0, 0, 0], [0, 0, 1])
+  )
 
   const [filters] = combineFinderFilters([
     {
+      // @ts-ignore
       filter: new EdgeFinder().containsPoint([
         wallThicknessInMm,
         wallThicknessInMm,
@@ -56,6 +67,7 @@ function main(replicad, params) {
       radius: innerFilletInMm,
     },
     {
+      // @ts-ignore
       filter: new EdgeFinder(),
       radius: (1 / 3) * wallThicknessInMm,
     },
@@ -68,7 +80,17 @@ function main(replicad, params) {
   }
 }
 
-function drawSide(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {object} options
+ * @param {number} options.gridSpacingInMm
+ * @param {number} options.widthInGrids
+ * @param {number} options.lengthInGrids
+ * @param {number} options.fastenerDiameterInMm
+ * @param {number} options.roundRadiusInMm
+ * @param {number} options.kerfInMm
+ * @returns {import('replicad').Drawing}
+ */
+function drawSide(options) {
   const {
     gridSpacingInMm,
     widthInGrids,
@@ -81,11 +103,11 @@ function drawSide(/** @type replicadLib */ replicad, options) {
   const widthInMm = widthInGrids * gridSpacingInMm - 2 * kerfInMm
   const lengthInMm = lengthInGrids * gridSpacingInMm - kerfInMm
 
-  let side = drawRoundedRectangleWithStraightBack(replicad, widthInMm, lengthInMm, roundRadiusInMm)
+  let side = drawRoundedRectangleWithStraightBack(widthInMm, lengthInMm, roundRadiusInMm)
 
   for (const widthIndex of range(widthInGrids)) {
     for (const lengthIndex of range(lengthInGrids)) {
-      const fastenerCut = drawHexihole(replicad, {
+      const fastenerCut = drawHexihole({
         radius: (1 / 2) * fastenerDiameterInMm,
         orientation: 'flat-bottom',
       }).translate([
@@ -99,7 +121,13 @@ function drawSide(/** @type replicadLib */ replicad, options) {
   return side
 }
 
-function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad, width, height, r) {
+/**
+ * @param {number} width
+ * @param {number} height
+ * @param {number} r
+ * @returns {import('replicad').Drawing}
+ */
+function drawRoundedRectangleWithStraightBack(width, height, r) {
   const { draw } = replicad
 
   return draw()
@@ -111,25 +139,37 @@ function drawRoundedRectangleWithStraightBack(/** @type replicadLib */ replicad,
     .close()
 }
 
-function drawHexihole(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} options.orientation
+ */
+function drawHexihole(options) {
   // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
   // The common length of the sides equals the radius of the circumscribed circle or circumcircle,
   //  which equals (2/sqrt(3)) times the apothem (radius of the inscribed circle).
   const { radius: inscribedRadius, orientation } = options
   const circumscribedRadius = inscribedRadius * (2 / Math.sqrt(3))
-  return drawHexagon(replicad, { radius: circumscribedRadius, orientation })
+  return drawHexagon({ radius: circumscribedRadius, orientation })
 }
 
-function drawHexagon(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} options.orientation
+ */
+function drawHexagon(options) {
   const { draw } = replicad
   const { radius, orientation = 'v-bottom' } = options
 
+  /** @type {[number, number]} */
   let startPoint
+  /** @type {number} */
   let startAngle
   if (orientation === 'v-bottom') {
     startPoint = [0, -radius]
     startAngle = 30
-  } else if (orientation === 'flat-bottom') {
+  } else {
     startPoint = [radius, 0]
     startAngle = 120
   }
@@ -141,6 +181,9 @@ function drawHexagon(/** @type replicadLib */ replicad, options) {
   return pen.close()
 }
 
+/**
+ * @param {number} end
+ */
 function range(end) {
   return Array.from(Array(end).keys())
 }

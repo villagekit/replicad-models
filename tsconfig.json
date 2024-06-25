@@ -1,0 +1,11 @@
+{
+  "extends": "../villagekit/dev/tsconfig/base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "include": ["models/**/*.js"],
+    "baseUrl": "./",
+    "typeRoots": ["typings", "./node_modules/@types"]
+  },
+  "exclude": ["node_modules"]
+}

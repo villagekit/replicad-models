@@ -1,6 +1,8 @@
+/** @import * as Replicad from 'replicad' */
+
 const ROT = 2 * Math.PI
 
-const defaultParams = {
+export const defaultParams = {
   hookWidth: 8,
   hookHeight: 40,
   hookMountRadius: 15,
@@ -12,9 +14,10 @@ const defaultParams = {
   hookFillet: 1.2,
 }
 
-/** @typedef { typeof import("replicad") } replicadLib */
-/** @type {function(replicadLib, typeof defaultParams): any} */
-function main(replicad, params) {
+/**
+ * @param {typeof defaultParams} params
+ */
+export default function main(params) {
   const { draw } = replicad
   const {
     hookWidth,
@@ -43,7 +46,9 @@ function main(replicad, params) {
     )
     .close()
 
-  const hook = hookProfile.sketchOnPlane().extrude(hookWidth).fillet(hookFillet)
+  const hook = /** @type {Replicad.Solid} */ (
+    hookProfile.sketchOnPlane().extrude(hookWidth)
+  ).fillet(hookFillet)
 
   const mountProfile = draw()
     .movePointerTo([
@@ -62,9 +67,11 @@ function main(replicad, params) {
     .rotate(90)
     .translate(0, (hookMountRadius * Math.sqrt(3)) / 2)
 
-  const mount = mountProfile.sketchOnPlane('YZ').extrude(hookThickness).fillet(hookFillet)
+  const mount = /** @type {Replicad.Solid} */ (
+    mountProfile.sketchOnPlane('YZ').extrude(hookThickness)
+  ).fillet(hookFillet)
 
-  const fastenerHole = drawHexihole(replicad, {
+  const fastenerHole = drawHexihole({
     radius: hookFastenerDiameter / 2,
     orientation: 'flat-bottom',
   })
@@ -72,28 +79,41 @@ function main(replicad, params) {
     .extrude(hookThickness)
     .translate(0, 0, (hookMountRadius * Math.sqrt(3)) / 2)
 
+  // @ts-ignore
   return hook.fuse(mount).cut(fastenerHole)
 }
 
-function drawHexihole(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} [options.orientation]
+ */
+function drawHexihole(options) {
   // https://en.wikipedia.org/wiki/Hexagon#Regular_hexagon
   // The common length of the sides equals the radius of the circumscribed circle or circumcircle,
   //  which equals (2/sqrt(3)) times the apothem (radius of the inscribed circle).
   const { radius: inscribedRadius, orientation } = options
   const circumscribedRadius = inscribedRadius * (2 / Math.sqrt(3))
-  return drawHexagon(replicad, { radius: circumscribedRadius, orientation })
+  return drawHexagon({ radius: circumscribedRadius, orientation })
 }
 
-function drawHexagon(/** @type replicadLib */ replicad, options) {
+/**
+ * @param {object} options
+ * @param {number} options.radius
+ * @param {'v-bottom' | 'flat-bottom'} [options.orientation]
+ */
+function drawHexagon(options) {
   const { draw } = replicad
   const { radius, orientation = 'v-bottom' } = options
 
+  /** @type {[number, number]} */
   let startPoint
+  /** @type {number} */
   let startAngle
   if (orientation === 'v-bottom') {
     startPoint = [0, -radius]
     startAngle = 30
-  } else if (orientation === 'flat-bottom') {
+  } else {
     startPoint = [radius, 0]
     startAngle = 120
   }
