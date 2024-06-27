@@ -6,7 +6,7 @@ export const defaultParams = {
   fastenerDiameterInMm: 8,
   cupInnerDiameterInMm: 100,
   cupEdgeWidthInMm: 5,
-  cupEdgeHeightInMm: 5,
+  cupHeightInMm: 5,
   spaceBetweenWallAndCupInMm: 10,
   hasEmptyInner: false,
   wallThicknessInMm: 1.6,
@@ -26,7 +26,7 @@ export default function main(params) {
     fastenerDiameterInMm,
     cupInnerDiameterInMm,
     cupEdgeWidthInMm,
-    cupEdgeHeightInMm,
+    cupHeightInMm,
     hasEmptyInner,
     spaceBetweenWallAndCupInMm,
     wallThicknessInMm,
@@ -45,7 +45,11 @@ export default function main(params) {
   const [filters] = combineFinderFilters([
     {
       // @ts-ignore
-      filter: new EdgeFinder().containsPoint([wallThicknessInMm, widthCenter, wallThicknessInMm]),
+      filter: new EdgeFinder().containsPoint([
+        wallThicknessInMm,
+        widthCenter,
+        wallThicknessInMm + cupHeightInMm,
+      ]),
       radius: innerFilletInMm,
     },
     {
@@ -55,7 +59,7 @@ export default function main(params) {
     },
   ])
 
-  const shape = cup.fuse(back) //.fillet(filters)
+  const shape = cup.fuse(back).fillet(filters)
 
   return {
     shape,
@@ -64,7 +68,7 @@ export default function main(params) {
   function createCup() {
     const totalDiameter = cupInnerDiameterInMm + 2 * cupEdgeWidthInMm
 
-    let baseProfile = draw()
+    const baseProfile = draw()
       .movePointerTo([wallThicknessInMm + spaceBetweenWallAndCupInMm + totalDiameter, widthCenter])
       .ellipseTo(
         [
@@ -80,6 +84,10 @@ export default function main(params) {
       .vLine(widthCenter)
       .closeWithMirror()
 
+    const base = /** @type {Replicad.Solid} */ (
+      baseProfile.sketchOnPlane('XY').extrude(wallThicknessInMm + cupHeightInMm)
+    )
+
     const innerProfile = drawCircle((1 / 2) * cupInnerDiameterInMm).translate([
       wallThicknessInMm +
         spaceBetweenWallAndCupInMm +
@@ -88,28 +96,21 @@ export default function main(params) {
       widthCenter,
     ])
 
-    const edgeProfile = drawCircle((1 / 2) * cupInnerDiameterInMm + cupEdgeWidthInMm)
-      .translate([
-        wallThicknessInMm +
-          spaceBetweenWallAndCupInMm +
-          cupEdgeWidthInMm +
-          (1 / 2) * cupInnerDiameterInMm,
-        widthCenter,
-      ])
-      .cut(innerProfile)
+    let cup
 
     if (hasEmptyInner) {
-      baseProfile = baseProfile.cut(innerProfile)
+      const inner = /** @type {Replicad.Solid} */ (
+        innerProfile.sketchOnPlane('XY').extrude(wallThicknessInMm + cupHeightInMm)
+      )
+      cup = base.cut(inner)
+    } else {
+      const inner = /** @type {Replicad.Solid} */ (
+        innerProfile.sketchOnPlane('XY').extrude(cupHeightInMm).translateZ(wallThicknessInMm)
+      )
+      cup = base.cut(inner)
     }
 
-    const base = /** @type {Replicad.Solid} */ (
-      baseProfile.sketchOnPlane('XY').extrude(wallThicknessInMm)
-    )
-    const edge = /** @type {Replicad.Solid} */ (
-      edgeProfile.sketchOnPlane('XY').extrude(cupEdgeHeightInMm).translateZ(wallThicknessInMm)
-    )
-
-    return base.fuse(edge)
+    return cup
   }
 
   function createBack() {
