@@ -4,11 +4,13 @@ export const defaultParams = {
   gridSpacingInMm: 40,
   widthInGrids: 2,
   fastenerDiameterInMm: 8,
-  cupEdgeWidthInMm: 5,
   cupInnerDiameterInMm: 100,
+  cupEdgeWidthInMm: 5,
+  cupEdgeHeightInMm: 5,
   spaceBetweenWallAndCupInMm: 10,
-  hasEmptyInner: true,
+  hasEmptyInner: false,
   wallThicknessInMm: 1.6,
+  innerFilletInMm: 5,
   outerFilletInMm: 5,
   kerfInMm: 1,
 }
@@ -17,27 +19,43 @@ export const defaultParams = {
  * @param {typeof defaultParams} params
  */
 export default function main(params) {
-  const { draw, drawCircle } = replicad
+  const { draw, drawCircle, combineFinderFilters, EdgeFinder } = replicad
   const {
     gridSpacingInMm,
     widthInGrids,
     fastenerDiameterInMm,
-    cupEdgeWidthInMm,
     cupInnerDiameterInMm,
+    cupEdgeWidthInMm,
+    cupEdgeHeightInMm,
     hasEmptyInner,
     spaceBetweenWallAndCupInMm,
     wallThicknessInMm,
+    innerFilletInMm,
     outerFilletInMm,
     kerfInMm,
   } = params
 
   const widthInMm = widthInGrids * gridSpacingInMm - 2 * kerfInMm
+  const widthCenter = (1 / 2) * widthInMm
   const backHeightInMm = gridSpacingInMm - 2 * kerfInMm
 
   const cup = createCup()
   const back = createBack()
 
-  const shape = cup.fuse(back).fillet(wallThicknessInMm / 3)
+  const [filters] = combineFinderFilters([
+    {
+      // @ts-ignore
+      filter: new EdgeFinder().containsPoint([wallThicknessInMm, widthCenter, wallThicknessInMm]),
+      radius: innerFilletInMm,
+    },
+    {
+      // @ts-ignore
+      filter: new EdgeFinder(),
+      radius: (1 / 3) * wallThicknessInMm,
+    },
+  ])
+
+  const shape = cup.fuse(back) //.fillet(filters)
 
   return {
     shape,
@@ -45,12 +63,6 @@ export default function main(params) {
 
   function createCup() {
     const totalDiameter = cupInnerDiameterInMm + 2 * cupEdgeWidthInMm
-    const widthCenter = (1 / 2) * widthInMm
-    /*
-    cupEdgeWidthInMm,
-    cupInnerDiameterInMm,
-    hasEmptyInner,
-    */
 
     let baseProfile = draw()
       .movePointerTo([wallThicknessInMm + spaceBetweenWallAndCupInMm + totalDiameter, widthCenter])
@@ -68,21 +80,36 @@ export default function main(params) {
       .vLine(widthCenter)
       .closeWithMirror()
 
-    if (hasEmptyInner) {
-      const inner = drawCircle((1 / 2) * cupInnerDiameterInMm).translate([
+    const innerProfile = drawCircle((1 / 2) * cupInnerDiameterInMm).translate([
+      wallThicknessInMm +
+        spaceBetweenWallAndCupInMm +
+        cupEdgeWidthInMm +
+        (1 / 2) * cupInnerDiameterInMm,
+      widthCenter,
+    ])
+
+    const edgeProfile = drawCircle((1 / 2) * cupInnerDiameterInMm + cupEdgeWidthInMm)
+      .translate([
         wallThicknessInMm +
           spaceBetweenWallAndCupInMm +
           cupEdgeWidthInMm +
           (1 / 2) * cupInnerDiameterInMm,
         widthCenter,
       ])
+      .cut(innerProfile)
 
-      baseProfile = baseProfile.cut(inner)
+    if (hasEmptyInner) {
+      baseProfile = baseProfile.cut(innerProfile)
     }
 
-    const base = baseProfile.sketchOnPlane('XY').extrude(wallThicknessInMm)
+    const base = /** @type {Replicad.Solid} */ (
+      baseProfile.sketchOnPlane('XY').extrude(wallThicknessInMm)
+    )
+    const edge = /** @type {Replicad.Solid} */ (
+      edgeProfile.sketchOnPlane('XY').extrude(cupEdgeHeightInMm).translateZ(wallThicknessInMm)
+    )
 
-    return /** @type {Replicad.Solid} */ (base)
+    return base.fuse(edge)
   }
 
   function createBack() {
