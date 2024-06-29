@@ -59,22 +59,21 @@ function bolt(options) {
  * @param {number} options.length
  */
 function isoThread(options) {
-  const { sketchHelix, draw, Plane, makeCylinder } = replicad
-  const { majDiameter, minDiameter, pitch, threadHeight, length } = options
+  const { sketchHelix, draw, Plane } = replicad
+  const { minDiameter, pitch, threadHeight, length } = options
 
   const threadBase = sketchHelix(
     pitch,
-    length + pitch,
+    length - pitch,
     (1 / 2) * minDiameter,
     [0, 0, 0],
     [0, 0, 1],
     false,
   )
 
-  const thread = threadBase.sweepSketch(sketchProfile, { frenet: true })
+  const thread = threadBase.sweepSketch(sketchProfile, { frenet: true }).translateZ(pitch)
 
-  // square off edges
-  return thread.cut(makeCylinder((1 / 2) * majDiameter, pitch).translateZ(-pitch))
+  return thread
 
   /**
    * @param {Replicad.Plane} plane
