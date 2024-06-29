@@ -1,73 +1,118 @@
 // attributions:
+// - https://en.wikipedia.org/wiki/ISO_metric_screw_thread
+// - https://en.wikipedia.org/wiki/Unified_Thread_Standard
 // - https://github.com/sgenoud/replicad/discussions/149
 
 /** @import * as Replicad from 'replicad' */
 
 export const defaultParams = {
-  innerRadius: 44.65,
-  pitch: 1.7,
-  threadHeight: 6.2,
-  toothSide: 0.8,
+  diameter: 8,
+  length: 20,
 }
 
 /**
  * @param {typeof defaultParams} params
  */
 export default function main(params) {
-  const { innerRadius, pitch, threadHeight, toothSide } = params
+  const { diameter, length } = params
 
-  return bolt({ innerRadius, pitch, threadHeight, toothSide })
+  const iso = isoThreads[Math.floor(diameter)]
+  const { pitch } = iso
+
+  return bolt({ diameter, pitch, length })
 }
 
 /**
  * @param {object} options
- * @param {number} options.innerRadius
+ * @param {number} options.diameter
+ * @param {number} options.pitch
+ * @param {number} options.length
+ */
+function bolt(options) {
+  const { makeCylinder } = replicad
+  const { diameter: majDiameter, pitch, length } = options
+
+  const threadHeight = getThreadHeight(pitch)
+  const minDiameter = getMinDiameter(majDiameter, threadHeight)
+
+  const thread = isoThread({
+    minDiameter,
+    majDiameter,
+    pitch,
+    threadHeight,
+    length,
+  })
+
+  const top = makeCylinder((1 / 2) * minDiameter, length)
+    .rotate(2) // to avoid having the end of the thread start on the cylinder seam which breaks the kernel
+    .fuse(thread.clone(), { optimisation: 'sameFace' })
+
+  return top
+}
+
+/**
+ * @param {object} options
+ * @param {number} options.majDiameter
+ * @param {number} options.minDiameter
  * @param {number} options.pitch
  * @param {number} options.threadHeight
- * @param {number} options.toothSide
+ * @param {number} options.length
  */
-function simpleThread(options) {
-  const { sketchHelix, draw, Plane } = replicad
-  const { innerRadius, pitch, threadHeight, toothSide } = options
+function isoThread(options) {
+  const { sketchHelix, draw, Plane, makeCylinder } = replicad
+  const { majDiameter, minDiameter, pitch, threadHeight, length } = options
 
-  const threadBase = sketchHelix(pitch, threadHeight, innerRadius, [0, 0, 0], [0, 0, 1], false)
+  const threadBase = sketchHelix(
+    pitch,
+    length + pitch,
+    (1 / 2) * minDiameter,
+    [0, 0, 0],
+    [0, 0, 1],
+    false,
+  )
 
-  return threadBase.sweepSketch(drawProfile, { frenet: true })
+  const thread = threadBase.sweepSketch(sketchProfile, { frenet: true })
+
+  // square off edges
+  return thread.cut(makeCylinder((1 / 2) * majDiameter, pitch).translateZ(-pitch))
 
   /**
    * @param {Replicad.Plane} plane
    * @param {Replicad.Point} origin
    */
-  function drawProfile(plane, origin) {
+  function sketchProfile(plane, origin) {
     const originPlane = new Plane(origin, [0, 0, -1], plane.zDir)
 
     return /** @type {Replicad.Sketch} */ (
-      draw().hLine(-toothSide).polarLine(toothSide, 60).close().sketchOnPlane(originPlane)
+      draw()
+        .lineTo([(2 / 16) * pitch, 0])
+        .lineTo([(7 / 16) * pitch, (5 / 8) * threadHeight])
+        .lineTo([(9 / 16) * pitch, (5 / 8) * threadHeight])
+        .lineTo([(14 / 16) * pitch, 0])
+        .lineTo([(16 / 16) * pitch, 0])
+        .close()
+        .sketchOnPlane(originPlane)
     )
   }
 }
 
+const isoThreads = {
+  8: {
+    pitch: 1.25,
+  },
+}
+
 /**
- * @param {object} options
- * @param {number} options.innerRadius
- * @param {number} options.pitch
- * @param {number} options.threadHeight
- * @param {number} options.toothSide
+ * @param {number} pitch
  */
-function bolt(options) {
-  const { makeCylinder } = replicad
-  const { innerRadius, pitch, threadHeight, toothSide } = options
+function getThreadHeight(pitch) {
+  return (Math.sqrt(3) / 2) * pitch
+}
 
-  const thread = simpleThread({
-    innerRadius,
-    pitch,
-    threadHeight,
-    toothSide,
-  })
-
-  const top = makeCylinder(innerRadius, 7)
-    .rotate(2) // to avoid having the end of the thread start on the cylinder seam which breaks the kernel
-    .fuse(thread.clone(), { optimisation: 'sameFace' })
-
-  return top
+/**
+ * @param {number} majDiameter
+ * @param {number} threadHeight
+ */
+function getMinDiameter(majDiameter, threadHeight) {
+  return majDiameter - 2 * (5 / 8) * threadHeight
 }
