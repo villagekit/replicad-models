@@ -2,6 +2,8 @@
 // - https://en.wikipedia.org/wiki/ISO_metric_screw_thread
 // - https://en.wikipedia.org/wiki/Unified_Thread_Standard
 // - https://github.com/sgenoud/replicad/discussions/149
+// - https://github.com/gumyr/cq_warehouse/blob/main/src/cq_warehouse/thread.py
+// - https://github.com/deadsy/sdfx/blob/master/sdf/screw.go
 
 /** @import * as Replicad from 'replicad' */
 
@@ -43,6 +45,8 @@ function bolt(options) {
     length,
   })
 
+  return thread
+
   const top = makeCylinder((1 / 2) * minDiameter, length)
     .rotate(2) // to avoid having the end of the thread start on the cylinder seam which breaks the kernel
     .fuse(thread.clone(), { optimisation: 'sameFace' })
@@ -59,40 +63,107 @@ function bolt(options) {
  * @param {number} options.length
  */
 function isoThread(options) {
-  const { sketchHelix, draw, Plane } = replicad
+  const {
+    loft,
+    assembleWire,
+    makeLine,
+    makeFace,
+    makeHelix,
+    makeSolid,
+    makePolygon,
+    draw,
+    Plane,
+    Wire,
+    getOC,
+    localGC,
+  } = replicad
   const { minDiameter, pitch, threadHeight, length } = options
 
-  const threadBase = sketchHelix(
-    pitch,
-    length - pitch,
-    (1 / 2) * minDiameter,
-    [0, 0, 0],
-    [0, 0, 1],
-    false,
+  /** @type {[Replicad.Wire, Replicad.Wire, Replicad.Wire, Replicad.Wire, Replicad.Wire, Replicad.Wire]} */
+  const helixes = [
+    makeThreadHelix([0, 0]),
+    makeThreadHelix([(2 / 16) * pitch, 0]),
+    makeThreadHelix([(7 / 16) * pitch, (5 / 8) * threadHeight]),
+    makeThreadHelix([(9 / 16) * pitch, (5 / 8) * threadHeight]),
+    makeThreadHelix([(14 / 16) * pitch, 0]),
+    makeThreadHelix([(16 / 16) * pitch, 0]),
+  ]
+
+  console.log('helixes', helixes)
+
+  // console.log('line', makeLine(helixes[0].startPoint, helixes[1].startPoint))
+
+  console.log(
+    helixes[0].startPoint.toTuple(),
+    helixes[1].startPoint.toTuple(),
+    helixes[2].startPoint.toTuple(),
+    helixes[3].startPoint.toTuple(),
+    helixes[4].startPoint.toTuple(),
+    helixes[5].startPoint.toTuple(),
+    helixes[0].startPoint.toTuple(),
   )
 
-  const thread = threadBase.sweepSketch(sketchProfile, { frenet: true }).translateZ(pitch)
+  /** @type {[Replicad.Face, Replicad.Face]} */
+  /*
+  const endCapFaces = [
+    makePolygon([
+      helixes[0].startPoint,
+      helixes[1].startPoint,
+      helixes[2].startPoint,
+      helixes[3].startPoint,
+      helixes[4].startPoint,
+      helixes[5].startPoint,
+      helixes[0].startPoint,
+    ]),
+    makePolygon([
+      helixes[0].endPoint,
+      helixes[1].endPoint,
+      helixes[2].endPoint,
+      helixes[3].endPoint,
+      helixes[4].endPoint,
+      helixes[5].endPoint,
+      helixes[0].endPoint,
+    ]),
+  ]
+  */
 
-  return thread
+  const threadFaces = [
+    makeRuledSurface(helixes[0], helixes[1]).faces[0],
+    makeRuledSurface(helixes[1], helixes[2]).faces[0],
+    makeRuledSurface(helixes[2], helixes[3]).faces[0],
+    makeRuledSurface(helixes[3], helixes[4]).faces[0],
+    makeRuledSurface(helixes[4], helixes[5]).faces[0],
+    makeRuledSurface(helixes[5], helixes[0]).faces[0],
+  ]
+
+  // return makeSolid(threadFaces.concat(endCapFaces))
+  return makeSolid(threadFaces)
 
   /**
-   * @param {Replicad.Plane} plane
-   * @param {Replicad.Point} origin
+   * @param {[number, number]} offset
+   * @returns {Replicad.Wire}
    */
-  function sketchProfile(plane, origin) {
-    const originPlane = new Plane(origin, [0, 0, -1], plane.zDir)
-
-    return /** @type {Replicad.Sketch} */ (
-      draw()
-        .lineTo([(2 / 16) * pitch, 0])
-        .lineTo([(7 / 16) * pitch, (5 / 8) * threadHeight])
-        .lineTo([(9 / 16) * pitch, (5 / 8) * threadHeight])
-        .lineTo([(14 / 16) * pitch, 0])
-        .lineTo([(16 / 16) * pitch, 0])
-        .close()
-        .sketchOnPlane(originPlane)
-    )
+  function makeThreadHelix(offset) {
+    const fakeEdge = makeHelix(pitch, length, (1 / 2) * minDiameter, [0, 0, 0], [0, 0, 1], false)
+    const wire = new Wire(fakeEdge.wrapped)
+    return wire.translate(offset[1], 0, offset[0])
   }
+}
+
+// https://github.com/CadQuery/cadquery/blob/d9ccd258918fbbc962323380769f135650ff8f79/cadquery/occ_impl/shapes.py#L2778-L2789
+/**
+ * @param {Replicad.Wire} wire1
+ * @param {Replicad.Wire} wire2
+ */
+function makeRuledSurface(wire1, wire2) {
+  const { getOC, localGC, Shell } = replicad
+  const oc = getOC()
+  // const [r, gc] = localGC()
+
+  const surface = oc.BRepFill.Shell(wire1.wrapped, wire2.wrapped)
+
+  // gc()
+  return new Shell(surface)
 }
 
 const isoThreads = {
