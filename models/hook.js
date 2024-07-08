@@ -69,7 +69,7 @@ export default function main(params) {
 
   const mount = /** @type {Replicad.Solid} */ (
     mountProfile.sketchOnPlane('YZ').extrude(hookThickness)
-  ).fillet(hookFillet)
+  )
 
   const fastenerHole = drawHexihole({
     radius: hookFastenerDiameter / 2,
@@ -80,7 +80,7 @@ export default function main(params) {
     .translate(0, 0, (hookMountRadius * Math.sqrt(3)) / 2)
 
   // @ts-ignore
-  return hook.fuse(mount).cut(fastenerHole)
+  return hook.fuse(mount.cut(fastenerHole).fillet(hookFillet))
 }
 
 /**
