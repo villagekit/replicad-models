@@ -64,20 +64,13 @@ export default function main(params) {
   const evenKnuckleHeight = (totalKnucklesHeight * knuckleEvenOddRatio) / numEvenKnuckles
   const oddKnuckleHeight = (totalKnucklesHeight * (1 - knuckleEvenOddRatio)) / numOddKnuckles
 
-  const shapes = []
-  if (evenSide) {
-    shapes.push({
-      shape: Side({ whichSide: 'even' }),
-      color: '#307473',
-    })
+  if (evenSide && !oddSide) {
+    return Side({ whichSide: 'even' })
   }
-  if (oddSide) {
-    shapes.push({
-      shape: Side({ whichSide: 'odd' }),
-      color: '#7A82AB',
-    })
+  if (oddSide && !evenSide) {
+    return Side({ whichSide: 'odd' })
   }
-  return shapes
+  return Side({ whichSide: 'even' }).fuse(Side({ whichSide: 'odd' }))
 
   // Each side of the hinge is constructed as:
   // - the leaf
