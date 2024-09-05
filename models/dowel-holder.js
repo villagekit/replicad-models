@@ -23,29 +23,53 @@ export default function main(params) {
     edgeThicknessInMm,
   } = params
 
-  let bottomProfile = draw()
-    .movePointerTo([
-      -(1 / 2) * gridSpacingInMm,
-      (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm,
-    ])
-    .halfEllipseTo(
-      [-(1 / 2) * gridSpacingInMm, -(1 / 2) * fastenerCapDiameterInMm - edgeThicknessInMm],
-      (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm,
-      true,
-    )
-    .hLineTo((1 / 2) * gridSpacingInMm)
-    .halfEllipseTo(
-      [(1 / 2) * gridSpacingInMm, (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm],
-      (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm,
-      true,
-    )
-    .close()
+  return createHolder()
 
-  bottomProfile = bottomProfile
-    .cut(drawCircle((1 / 2) * fastenerHoleDiameterInMm).translate([(1 / 2) * gridSpacingInMm, 0]))
-    .cut(drawCircle((1 / 2) * fastenerHoleDiameterInMm).translate([-(1 / 2) * gridSpacingInMm, 0]))
-
-  const bottom = bottomProfile.sketchOnPlane().extrude(bottomThicknessInMm)
+  const bottom = createBottom()
 
   return bottom
+
+  function createBottom() {
+    let bottomProfile = draw()
+      .movePointerTo([
+        -(1 / 2) * gridSpacingInMm,
+        (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm,
+      ])
+      .halfEllipseTo(
+        [-(1 / 2) * gridSpacingInMm, -(1 / 2) * fastenerCapDiameterInMm - edgeThicknessInMm],
+        (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm,
+        true,
+      )
+      .hLineTo((1 / 2) * gridSpacingInMm)
+      .halfEllipseTo(
+        [(1 / 2) * gridSpacingInMm, (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm],
+        (1 / 2) * fastenerCapDiameterInMm + edgeThicknessInMm,
+        true,
+      )
+      .close()
+
+    bottomProfile = bottomProfile
+      .cut(drawCircle((1 / 2) * fastenerHoleDiameterInMm).translate([(1 / 2) * gridSpacingInMm, 0]))
+      .cut(
+        drawCircle((1 / 2) * fastenerHoleDiameterInMm).translate([-(1 / 2) * gridSpacingInMm, 0]),
+      )
+
+    const bottom = bottomProfile.sketchOnPlane().extrude(bottomThicknessInMm)
+  }
+
+  function createHolder() {
+    const profile = draw()
+      .movePointerTo([0, -(1 / 2) * dowelDiameterInMm])
+      .ellipseTo(
+        [0, (1 / 2) * dowelDiameterInMm],
+        (1 / 2) * dowelDiameterInMm,
+        (1 / 2) * dowelDiameterInMm,
+        180,
+        false,
+        true,
+      )
+      .close()
+
+    return profile
+  }
 }
