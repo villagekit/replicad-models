@@ -5,6 +5,8 @@ export const defaultParams = {
   dowelDiameterInMm: 22,
   fastenerHoleDiameterInMm: 8,
   fastenerCapDiameterInMm: 13,
+  holderThicknessInMm: 10,
+  holderOffsetIsUp: true,
   bottomThicknessInMm: 1,
   edgeThicknessInMm: 2,
 }
@@ -19,15 +21,16 @@ export default function main(params) {
     dowelDiameterInMm,
     fastenerHoleDiameterInMm,
     fastenerCapDiameterInMm,
+    holderThicknessInMm,
+    holderOffsetIsUp,
     bottomThicknessInMm,
     edgeThicknessInMm,
   } = params
 
-  return createHolder()
-
+  const holder = createHolder()
   const bottom = createBottom()
 
-  return bottom
+  return holder.fuse(bottom)
 
   function createBottom() {
     let bottomProfile = draw()
@@ -54,22 +57,49 @@ export default function main(params) {
         drawCircle((1 / 2) * fastenerHoleDiameterInMm).translate([-(1 / 2) * gridSpacingInMm, 0]),
       )
 
-    const bottom = bottomProfile.sketchOnPlane().extrude(bottomThicknessInMm)
+    return bottomProfile.sketchOnPlane().extrude(bottomThicknessInMm)
   }
 
   function createHolder() {
-    const profile = draw()
-      .movePointerTo([0, -(1 / 2) * dowelDiameterInMm])
-      .ellipseTo(
-        [0, (1 / 2) * dowelDiameterInMm],
-        (1 / 2) * dowelDiameterInMm,
-        (1 / 2) * dowelDiameterInMm,
-        180,
-        false,
-        true,
-      )
+    const topAngleInDeg = 30
+
+    const innerRadius = (1 / 2) * dowelDiameterInMm
+    const outerRadius = innerRadius + edgeThicknessInMm
+
+    const topInnerX = innerRadius * Math.cos(degToRad(topAngleInDeg))
+    const topOuterX = topInnerX + edgeThicknessInMm
+    const topY = innerRadius * Math.sin(degToRad(topAngleInDeg))
+
+    let holderProfile = draw()
+      .movePointerTo([0, -innerRadius])
+      .ellipseTo([topInnerX, topY], innerRadius, innerRadius, 0, false, true)
+      .lineTo([topOuterX, topY])
+      .ellipseTo([-topOuterX, topY], outerRadius, outerRadius, 0, true, false)
+      .lineTo([-topInnerX, topY])
+      .ellipseTo([0, -innerRadius], innerRadius, innerRadius, 0, false, true)
       .close()
 
-    return profile
+    // if need to offset to make space for fastener cap
+    if (outerRadius > ((1 / 2) * gridSpacingInMm - (1 / 2) * fastenerCapDiameterInMm)) {
+    const direction = holderOffsetIsUp ? 1 : -1
+    const offset = 
+      holderProfile = holderProfile.translate([0, 
+    }
+
+    return holderProfile.sketchOnPlane().extrude(holderThicknessInMm + bottomThicknessInMm)
   }
+}
+
+/**
+ * @param {number} degrees
+ */
+function degToRad(degrees) {
+  return 2 * Math.PI * (degrees / 360)
+}
+
+/**
+ * @param {number} radians
+ */
+function radToDeg(radians) {
+  return 360 * (radians / (2 * Math.PI))
 }
