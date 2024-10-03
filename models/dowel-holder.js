@@ -70,7 +70,7 @@ export default function main(params) {
     const topOuterX = topInnerX + edgeThicknessInMm
     const topY = innerRadius * Math.sin(degToRad(topAngleInDeg))
 
-    let holderProfile = draw()
+    const holderProfile = draw()
       .movePointerTo([0, -innerRadius])
       .ellipseTo([topInnerX, topY], innerRadius, innerRadius, 0, false, true)
       .lineTo([topOuterX, topY])
@@ -79,14 +79,17 @@ export default function main(params) {
       .ellipseTo([0, -innerRadius], innerRadius, innerRadius, 0, false, true)
       .close()
 
+    return holderProfile.sketchOnPlane().extrude(holderThicknessInMm + bottomThicknessInMm)
+
+    /*
     // if need to offset to make space for fastener cap
     if (outerRadius > ((1 / 2) * gridSpacingInMm - (1 / 2) * fastenerCapDiameterInMm)) {
     const direction = holderOffsetIsUp ? 1 : -1
-    const offset = 
-      holderProfile = holderProfile.translate([0, 
-    }
 
-    return holderProfile.sketchOnPlane().extrude(holderThicknessInMm + bottomThicknessInMm)
+    const offset =
+      holderProfile = holderProfile.translate([0,
+    }
+    */
   }
 }
 
