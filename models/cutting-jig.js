@@ -3,7 +3,10 @@
 export const defaultParams = {
   gridUnitInMm: 40,
   cutterKerfInMm: 0.635,
-  holeDiameterInMm: 7.5, // drill tap size
+  holeDiameterInMm: 8,
+  headDiameterInMm: 12.75,
+  headHeightInMm: 3,
+  headCornerRadiusInMm: 0.5,
   lengthInGu: 2,
   heightInMm: 10,
   filletInMm: 2,
@@ -13,9 +16,18 @@ export const defaultParams = {
  * @param {typeof defaultParams} params
  */
 export default function main(params) {
-  const { drawRoundedRectangle, drawCircle } = replicad
-  const { gridUnitInMm, cutterKerfInMm, holeDiameterInMm, lengthInGu, heightInMm, filletInMm } =
-    params
+  const { draw, drawRoundedRectangle, drawCircle } = replicad
+  const {
+    gridUnitInMm,
+    cutterKerfInMm,
+    holeDiameterInMm,
+    headDiameterInMm,
+    headHeightInMm,
+    headCornerRadiusInMm,
+    lengthInGu,
+    heightInMm,
+    filletInMm,
+  } = params
 
   const lengthInMm = lengthInGu * gridUnitInMm - cutterKerfInMm
   const widthInMm = gridUnitInMm
@@ -30,12 +42,18 @@ export default function main(params) {
   ).fillet(filletInMm)
 
   for (let gridIndex = 0; gridIndex < lengthInGu; gridIndex++) {
-    const holeProfile = drawCircle((1 / 2) * holeDiameterInMm).translate([
-      (1 / 2 + gridIndex) * gridUnitInMm,
-      0,
-    ])
+    const holeProfile = draw()
+      .hLine((1 / 2) * holeDiameterInMm)
+      .vLine(heightInMm - headHeightInMm)
+      .customCorner(headCornerRadiusInMm)
+      .hLine((1 / 2) * (headDiameterInMm - holeDiameterInMm))
+      .vLine(headHeightInMm)
+      .hLine(-(1 / 2) * headDiameterInMm)
+      .close()
 
-    const holeShape = /** @type Replicad.Solid */ (holeProfile.sketchOnPlane().extrude(heightInMm))
+    const holeShape = /** @type Replicad.Solid */ (
+      holeProfile.sketchOnPlane('XZ').revolve([0, 0, 1])
+    ).translate([(1 / 2 + gridIndex) * gridUnitInMm, 0])
 
     jigShape = jigShape.cut(holeShape)
   }
