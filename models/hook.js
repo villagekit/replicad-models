@@ -32,8 +32,9 @@ export default function main(params) {
   } = params
 
   const hookProfile = draw()
+    .movePointerTo([0, (1 / 2) * hookMountRadius])
     .hLine(hookThickness)
-    .vLine(hookHeight)
+    .vLine(hookHeight - (1 / 2) * hookMountRadius)
     .halfEllipse(hookEllipseLength, 0, hookEllipseRadius)
     .vLine(-hookLipLength)
     .hLine(hookThickness)
