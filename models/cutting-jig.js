@@ -2,7 +2,7 @@
 
 export const defaultParams = {
   gridUnitInMm: 40,
-  cutterKerfInMm: 0.635,
+  cutterKerfInMm: 2.5,
   holeDiameterInMm: 8,
   headDiameterInMm: 12.75,
   headHeightInMm: 3,
