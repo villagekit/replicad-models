@@ -16,7 +16,7 @@ export const defaultParams = {
  * @param {typeof defaultParams} params
  */
 export default function main(params) {
-  const { draw, drawRoundedRectangle, drawCircle } = replicad
+  const { draw, drawRoundedRectangle } = replicad
   const {
     gridUnitInMm,
     cutterKerfInMm,
