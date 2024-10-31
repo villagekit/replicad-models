@@ -39,7 +39,7 @@
 
 ![Screenshot of hinge model, odd side](./images/hinge-odd.png)
 
-![Screenshot of hinge model, even side](./images/hinge-odd.png)
+![Screenshot of hinge model, even side](./images/hinge-even.png)
 
 ### [hook](./models/hook.js)
 
