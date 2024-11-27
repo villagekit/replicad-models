@@ -2,13 +2,14 @@
 
 export const defaultParams = {
   lengthInMm: 40,
-  snapThicknessInMm: 2,
-  snapLengthInMm: 6,
+  snapThicknessInMm: 3,
+  snapLengthInMm: 2,
   flexLengthInMm: 20,
+  flexWidthInMm: 3,
   capDiameterInMm: 12.5,
   capHeightInMm: 3.2,
   holeDiameterInMm: 8,
-  holeMarginInMm: 2,
+  holeMarginInMm: 0.5,
   cornerRadiusInMm: 1,
 }
 
@@ -22,6 +23,7 @@ export default function main(params) {
     snapLengthInMm,
     snapThicknessInMm,
     flexLengthInMm,
+    flexWidthInMm,
     capDiameterInMm,
     capHeightInMm,
     holeDiameterInMm,
@@ -37,6 +39,7 @@ export default function main(params) {
         snapThicknessInMm,
         snapLengthInMm,
         flexLengthInMm,
+        flexWidthInMm,
         holeDiameterInMm,
         holeMarginInMm,
         cornerRadiusInMm,
@@ -83,6 +86,7 @@ function createCap(options) {
  * @param {number} options.snapLengthInMm
  * @param {number} options.snapThicknessInMm
  * @param {number} options.flexLengthInMm
+ * @param {number} options.flexWidthInMm
  * @param {number} options.holeDiameterInMm
  * @param {number} options.holeMarginInMm
  * @param {number} options.cornerRadiusInMm
@@ -94,14 +98,13 @@ function createPin(options) {
     snapLengthInMm,
     snapThicknessInMm,
     flexLengthInMm,
+    flexWidthInMm,
     holeDiameterInMm,
     holeMarginInMm,
     cornerRadiusInMm,
   } = options
 
   const sideWidth = (1 / 2) * holeDiameterInMm - holeMarginInMm
-
-  const flexWidth = (1 / 2) * sideWidth
 
   const profile = draw()
     .lineTo([0, sideWidth])
@@ -111,10 +114,10 @@ function createPin(options) {
     .customCorner((1 / 3) * cornerRadiusInMm)
     .lineTo([lengthInMm + (1 / 3) * snapLengthInMm, sideWidth + snapLengthInMm])
     .customCorner(cornerRadiusInMm)
-    .lineTo([lengthInMm + snapLengthInMm, sideWidth - flexWidth])
+    .lineTo([lengthInMm + snapLengthInMm, (1 / 2) * flexWidthInMm])
     .customCorner(cornerRadiusInMm)
-    .lineTo([lengthInMm - flexLengthInMm, sideWidth - flexWidth])
-    .tangentArcTo([lengthInMm - flexLengthInMm - flexWidth, 0])
+    .lineTo([lengthInMm - flexLengthInMm, (1 / 2) * flexWidthInMm])
+    .tangentArcTo([lengthInMm - flexLengthInMm - (1 / 2) * flexWidthInMm, 0])
     .closeWithMirror()
 
   return profile.sketchOnPlane('XY').extrude(snapThicknessInMm)
