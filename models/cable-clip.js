@@ -1,36 +1,107 @@
 /** @import * as Replicad from 'replicad' */
 
-const ROT = 2 * Math.PI
-
 export const defaultParams = {
   thicknessInMm: 4,
-  tieWidthInMm: 8,
+  clipLengthInMm: 18,
+  clipWidthInMm: 16,
+  tieWidthInMm: 10,
   tieHeightInMm: 4,
-  fastenerHoleDiameterInMm: 4,
-  fastenerCapDiameterInMm: 4,
+  fastenerHoleDiameterInMm: 8,
+  filletRadius: 1,
 }
 
 /**
  * @param {typeof defaultParams} params
  */
 export default function main(params) {
-  const { draw } = replicad
   const {
     thicknessInMm,
-    tieWidthInMm,
+    clipLengthInMm,
+    clipWidthInMm,
     tieHeightInMm,
+    tieWidthInMm,
     fastenerHoleDiameterInMm,
-    fastenerCapDiameterInMm,
+    filletRadius,
   } = params
+
+  const base =
+    /** @type {Replicad.Solid} */
+    (
+      drawBase({
+        thicknessInMm,
+        clipLengthInMm,
+        clipWidthInMm,
+        fastenerHoleDiameterInMm,
+      })
+    )
+
+  const tieHolder =
+    /** @type {Replicad.Solid} */
+    (
+      drawTieHolder({
+        thicknessInMm,
+        tieWidthInMm,
+        tieHeightInMm,
+      })
+    )
+  const tieHolderA = tieHolder.clone().translateY((1 / 2) * clipWidthInMm + thicknessInMm)
+  const tieHolderB = tieHolder.clone().translateY(-(1 / 2) * clipWidthInMm)
+
+  return base.fuse(tieHolderA).fuse(tieHolderB).fillet(filletRadius)
 }
 
 /**
  * @param {object} options
  * @param {number} options.thicknessInMm
+ * @param {number} options.clipLengthInMm
+ * @param {number} options.clipWidthInMm
  * @param {number} options.fastenerHoleDiameterInMm
- * @param {number} options.fastenerCapDiameterInMm
  */
 function drawBase(options) {
+  const { draw, drawCircle } = replicad
+  const { thicknessInMm, clipLengthInMm, clipWidthInMm, fastenerHoleDiameterInMm } = options
+
+  const outerProfile = draw()
+    .movePointerTo([0, -(1 / 2) * clipWidthInMm])
+    .lineTo([(1 / 2) * clipLengthInMm, -(1 / 2) * clipWidthInMm])
+    .lineTo([(1 / 2) * clipLengthInMm, (1 / 2) * clipWidthInMm])
+    .lineTo([-(1 / 2) * clipLengthInMm, (1 / 2) * clipWidthInMm])
+    .lineTo([-(1 / 2) * clipLengthInMm, -(1 / 2) * clipWidthInMm])
+    .close()
+
+  const holeProfile = drawCircle((1 / 2) * fastenerHoleDiameterInMm)
+
+  const profile = outerProfile.cut(holeProfile)
+
+  return profile.sketchOnPlane('XY').extrude(thicknessInMm)
+}
+
+/**
+ * @param {object} options
+ * @param {number} options.thicknessInMm
+ * @param {number} options.tieWidthInMm
+ * @param {number} options.tieHeightInMm
+ */
+function drawTieHolder(options) {
   const { draw } = replicad
-  const { thicknessInMm, fastenerHoleDiameterInMm, fastenerCapDiameterInMm } = options
+  const { thicknessInMm, tieWidthInMm, tieHeightInMm } = options
+
+  const outerProfile = draw()
+    .lineTo([(1 / 2) * tieWidthInMm + thicknessInMm, 0])
+    .lineTo([(1 / 2) * tieWidthInMm + thicknessInMm, tieHeightInMm + 2 * thicknessInMm])
+    .lineTo([-(1 / 2) * tieWidthInMm - thicknessInMm, tieHeightInMm + 2 * thicknessInMm])
+    .lineTo([-(1 / 2) * tieWidthInMm - thicknessInMm, 0])
+    .close()
+
+  const innerProfile = draw()
+    .movePointerTo([0, thicknessInMm])
+    .lineTo([(1 / 2) * tieWidthInMm, thicknessInMm])
+    .lineTo([(1 / 2) * tieWidthInMm, tieHeightInMm + thicknessInMm])
+    .lineTo([-(1 / 2) * tieWidthInMm, tieHeightInMm + thicknessInMm])
+    .lineTo([-(1 / 2) * tieWidthInMm, thicknessInMm])
+    .close()
+
+  const profile = outerProfile.cut(innerProfile)
+
+  return profile.sketchOnPlane('XZ').extrude(thicknessInMm)
 }
