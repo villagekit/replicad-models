@@ -6,7 +6,7 @@ export const defaultParams = {
   tieWidthInMm: 10,
   tieHeightInMm: 4,
   fastenerHoleDiameterInMm: 8,
-  filletRadius: 1,
+  filletRadius: 1.5,
 }
 
 /**
@@ -88,7 +88,9 @@ function drawTieHolder(options) {
   const outerProfile = draw()
     .lineTo([(1 / 2) * tieWidthInMm + thicknessInMm, 0])
     .lineTo([(1 / 2) * tieWidthInMm + thicknessInMm, tieHeightInMm + 2 * thicknessInMm])
+    .customCorner(thicknessInMm * Math.SQRT2)
     .lineTo([-(1 / 2) * tieWidthInMm - thicknessInMm, tieHeightInMm + 2 * thicknessInMm])
+    .customCorner(thicknessInMm * Math.SQRT2)
     .lineTo([-(1 / 2) * tieWidthInMm - thicknessInMm, 0])
     .close()
 
