@@ -3,7 +3,6 @@
 export const defaultParams = {
   thicknessInMm: 4,
   clipLengthInMm: 18,
-  clipWidthInMm: 16,
   tieWidthInMm: 10,
   tieHeightInMm: 4,
   fastenerHoleDiameterInMm: 8,
@@ -17,7 +16,6 @@ export default function main(params) {
   const {
     thicknessInMm,
     clipLengthInMm,
-    clipWidthInMm,
     tieHeightInMm,
     tieWidthInMm,
     fastenerHoleDiameterInMm,
@@ -30,7 +28,7 @@ export default function main(params) {
       drawBase({
         thicknessInMm,
         clipLengthInMm,
-        clipWidthInMm,
+        tieWidthInMm,
         fastenerHoleDiameterInMm,
       })
     )
@@ -44,8 +42,8 @@ export default function main(params) {
         tieHeightInMm,
       })
     )
-  const tieHolderA = tieHolder.clone().translateY((1 / 2) * clipWidthInMm + thicknessInMm)
-  const tieHolderB = tieHolder.clone().translateY(-(1 / 2) * clipWidthInMm)
+  const tieHolderA = tieHolder.clone().translateY((1 / 2) * clipLengthInMm + thicknessInMm)
+  const tieHolderB = tieHolder.clone().translateY(-(1 / 2) * clipLengthInMm)
 
   return base.fuse(tieHolderA).fuse(tieHolderB).fillet(filletRadius)
 }
@@ -54,19 +52,20 @@ export default function main(params) {
  * @param {object} options
  * @param {number} options.thicknessInMm
  * @param {number} options.clipLengthInMm
- * @param {number} options.clipWidthInMm
+ * @param {number} options.tieWidthInMm
  * @param {number} options.fastenerHoleDiameterInMm
  */
 function drawBase(options) {
   const { draw, drawCircle } = replicad
-  const { thicknessInMm, clipLengthInMm, clipWidthInMm, fastenerHoleDiameterInMm } = options
+  const { thicknessInMm, clipLengthInMm, tieWidthInMm, fastenerHoleDiameterInMm } = options
+
+  const clipWidthInMm = tieWidthInMm + 2 * thicknessInMm
 
   const outerProfile = draw()
-    .movePointerTo([0, -(1 / 2) * clipWidthInMm])
-    .lineTo([(1 / 2) * clipLengthInMm, -(1 / 2) * clipWidthInMm])
-    .lineTo([(1 / 2) * clipLengthInMm, (1 / 2) * clipWidthInMm])
-    .lineTo([-(1 / 2) * clipLengthInMm, (1 / 2) * clipWidthInMm])
-    .lineTo([-(1 / 2) * clipLengthInMm, -(1 / 2) * clipWidthInMm])
+    .movePointerTo([(1 / 2) * clipWidthInMm, -(1 / 2) * clipLengthInMm])
+    .lineTo([(1 / 2) * clipWidthInMm, (1 / 2) * clipLengthInMm])
+    .lineTo([-(1 / 2) * clipWidthInMm, (1 / 2) * clipLengthInMm])
+    .lineTo([-(1 / 2) * clipWidthInMm, -(1 / 2) * clipLengthInMm])
     .close()
 
   const holeProfile = drawCircle((1 / 2) * fastenerHoleDiameterInMm)
